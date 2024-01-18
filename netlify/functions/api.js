@@ -1,26 +1,19 @@
 import "dotenv/config";
-import express from "express";
+import express, { Router } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 // import checklist from "./models/checklist.js";
+import serverless from 'serverless-http';
 
-const app = express();
+const api = express();
 
-app.use(cors());
-app.use(bodyParser.json());
+api.use(cors());
+api.use(bodyParser.json());
 
-const port = process.env.PORT || 4000;
-
-app.listen(port, () => {
-  console.log(`Listening on port: ${port}`);
-});
 
 mongoose.connect(process.env.DATABASE_URL);
-
-app.get("/", (req, res) => {
-  res.json({ message: "Server running - Project 2" });
-});
+const router = Router()
 
 const destinationSchema = new mongoose.Schema({
   location: String,
@@ -55,12 +48,16 @@ const Destination = mongoose.model("Destination", destinationSchema);
 const Checklist = mongoose.model("Checklist", checkListSchema);
 const User = mongoose.model("User", userSchema);
 
-app.get("/user/login", async (req, res) => {
+router.get("/", (req, res) => {
+    res.json({ message: "Server running - Project 2" });
+  });
+
+router.get("/user/login", async (req, res) => {
   const user = await User.find({});
   res.json(user);
 });
 
-app.get("/destination", async (req, res) => {
+router.get("/destination", async (req, res) => {
   const userEmail = req.headers["user-email"];
   const user = await User.findOne({ userEmail: userEmail });
   // console.log(user)
@@ -76,12 +73,12 @@ app.get("/destination", async (req, res) => {
   }
 });
 
-// app.get("/destination", async (req, res) => {
+// router.get("/destination", async (req, res) => {
 //     const destinations = await Destination.find({}).sort("location")
 //     res.json(destinations);
 //   });
 
-// app.post("/destination/add", async (req, res) => {
+// router.post("/destination/add", async (req, res) => {
 //     const userEmail = req.headers['user-email']
 //     const user = await User.findOne({ "userEmail": userEmail })
 //     console.log(user)
@@ -98,7 +95,7 @@ app.get("/destination", async (req, res) => {
 //     .catch(err => console.error(err))
 // })
 
-app.post("/destination/add", async (req, res) => {
+router.post("/destination/add", async (req, res) => {
   const userEmail = req.headers["user-email"];
   const user = await User.findOne({ userEmail: userEmail });
   console.log(user);
@@ -137,18 +134,18 @@ app.post("/destination/add", async (req, res) => {
     .catch((err) => console.error(err));
 });
 
-app.get("/destination/:id", async (req, res) => {
+router.get("/destination/:id", async (req, res) => {
   const destination = await Destination.findById(req.params.id);
   res.json(destination);
 });
 
-app.get("/destination/:id/checklist", async (req, res) => {
+router.get("/destination/:id/checklist", async (req, res) => {
   const allTodos = await Checklist.find({ destination: req.params.id });
   // res.json(checklist)
   res.json(allTodos);
 });
 
-app.post("/destination/:id/checklist/add", (req, res) => {
+router.post("/destination/:id/checklist/add", (req, res) => {
   const checklist = req.body;
   const destinationId = req.params.id;
 
@@ -175,7 +172,7 @@ app.post("/destination/:id/checklist/add", (req, res) => {
     });
 });
 
-app.delete("/destination/:id", (req, res) => {
+router.delete("/destination/:id", (req, res) => {
   Destination.deleteOne({ _id: req.params.id })
     .then((deletedDestination) => {
       if (!deletedDestination) {
@@ -191,7 +188,7 @@ app.delete("/destination/:id", (req, res) => {
     });
 });
 
-app.delete("/destination/:id/checklist/:id", (req, res) => {
+router.delete("/destination/:id/checklist/:id", (req, res) => {
   Checklist.deleteOne({ _id: req.params.id })
     .then(() => {
       res.sendStatus(200);
@@ -201,7 +198,7 @@ app.delete("/destination/:id/checklist/:id", (req, res) => {
     });
 });
 
-app.put("/destination/:id", (req, res) => {
+router.put("/destination/:id", (req, res) => {
   Destination.updateOne({ _id: req.params.id }, { location: req.body.location })
     .then(() => {
       res.sendStatus(200);
@@ -211,7 +208,7 @@ app.put("/destination/:id", (req, res) => {
     });
 });
 
-app.put("/destination/:id/checklist/:id", (req, res) => {
+router.put("/destination/:id/checklist/:id", (req, res) => {
   Checklist.updateOne({ _id: req.params.id }, { todo: req.body.todo })
     .then(() => {
       res.sendStatus(200);
@@ -221,7 +218,7 @@ app.put("/destination/:id/checklist/:id", (req, res) => {
     });
 });
 
-app.post("/user/login", async (req, res) => {
+router.post("/user/login", async (req, res) => {
   const now = new Date();
 
   if ((await User.countDocuments({ userEmail: req.body.userEmail })) === 0) {
@@ -245,3 +242,8 @@ app.post("/user/login", async (req, res) => {
     res.sendStatus(200);
   }
 });
+
+
+api.use("/api/", router)
+
+export const handler = serverless(api)
