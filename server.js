@@ -76,65 +76,40 @@ app.get("/destination", async (req, res) => {
   }
 });
 
-// app.get("/destination", async (req, res) => {
-//     const destinations = await Destination.find({}).sort("location")
-//     res.json(destinations);
-//   });
-
-// app.post("/destination/add", async (req, res) => {
-//     const userEmail = req.headers['user-email']
-//     const user = await User.findOne({ "userEmail": userEmail })
-//     console.log(user)
-//     const destination = req.body
-
-//     const newDestination = new Destination({
-//         location:  destination.location,
-//         user: user._id
-//     })
-//     newDestination.save()
-//     .then(() => {
-//         res.sendStatus(200)
-//     })
-//     .catch(err => console.error(err))
-// })
-
 app.post("/destination/add", async (req, res) => {
   const userEmail = req.headers["user-email"];
   const user = await User.findOne({ userEmail: userEmail });
   console.log(user);
   const destination = req.body;
 
-  const packingList = ['Home Clothes', 'Footwear', 'Swimwear', 'Accessories', 'Coat', 'Socks', 'Hat', 'Spare bag', 'Sunglasses'];
-  const toiletriesList = ['Toothbrush', 'Toothpaste', 'Facewash']
+  const packingList = ['Home Clothes', 'Footwear', 'Swimwear', 'Accessories', 'Coat', 'Socks', 
+  'Hat', 'Spare bag', 'Sunglasses', 'Toothbrush', 'Toothpaste', 'Face Wash', 'Personal Hygiene', 
+  'Body Wash', 'Shampoo', 'Conditioner', 'Hairbrush', 'Medicine', 'Phone', 'Phone Charger', 
+  'Laptop Charger', 'Camera', 'Camera Charger', 'Travel Adapter', 'Shaver/Straightener', 
+  'Headphones/Earphones', 'Portable Charger', 'Wallet', 'Travel Money/Currency', 'Passport', 
+  'Visa', 'License', 'Travel Insurance'];
 
-  const newDestination = new Destination({
-    location: destination.location,
-    user: user._id,
-  });
-  newDestination
-    .save()
-    .then((destination) => {
-      Promise.all(
-        packingList.map((item) =>
-          new Checklist({
-            todo: item,
-            destination: destination._id,
-          }).save()
-        )
-      )
-      Promise.all(
-        toiletriesList.map((item) =>
-          new Checklist({
-            todo: item,
-            destination: destination._id,
-          }).save()
-        )
-      )
-      .then(() => {
-        res.sendStatus(200);
-      });
-    })
-    .catch((err) => console.error(err));
+const newDestination = new Destination({
+  location: destination.location,
+  user: user._id,
+});
+
+newDestination.save()
+  .then((destination) => {
+    // Sequentially save Checklist items
+    return packingList.reduce((promiseChain, item) => {
+      return promiseChain.then(() =>
+        new Checklist({
+          todo: item,
+          destination: destination._id,
+        }).save()
+      );
+    }, Promise.resolve());
+  })
+  .then(() => {
+    res.sendStatus(200);
+  })
+  .catch((err) => console.error(err));
 });
 
 app.get("/destination/:id", async (req, res) => {
@@ -245,3 +220,27 @@ app.post("/user/login", async (req, res) => {
     res.sendStatus(200);
   }
 });
+
+
+// promise.all code 
+//   const newDestination = new Destination({
+//     location: destination.location,
+//     user: user._id,
+//   });
+//   newDestination
+//     .save()
+//     .then((destination) => {
+//       Promise.all(
+//         packingList.map((item) =>
+//           new Checklist({
+//             todo: item,
+//             destination: destination._id,
+//           }).save()
+//         )
+//       )
+//       .then(() => {
+//         res.sendStatus(200);
+//       });
+//     })
+//     .catch((err) => console.error(err));
+// });

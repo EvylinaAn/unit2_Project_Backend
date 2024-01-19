@@ -101,37 +101,33 @@ router.post("/destination/add", async (req, res) => {
   console.log(user);
   const destination = req.body;
 
-  const packingList = ['Home Clothes', 'Footwear', 'Swimwear', 'Accessories', 'Coat', 'Socks', 'Hat', 'Spare bag', 'Sunglasses'];
-  const toiletriesList = ['Toothbrush', 'Toothpaste', 'Facewash']
+  const packingList = ['Home Clothes', 'Footwear', 'Swimwear', 'Accessories', 'Coat', 'Socks', 
+  'Hat', 'Spare bag', 'Sunglasses', 'Toothbrush', 'Toothpaste', 'Face Wash', 'Personal Hygiene', 
+  'Body Wash', 'Shampoo', 'Conditioner', 'Hairbrush', 'Medicine', 'Phone', 'Phone Charger', 
+  'Laptop Charger', 'Camera', 'Camera Charger', 'Travel Adapter', 'Shaver/Straightener', 
+  'Headphones/Earphones', 'Portable Charger', 'Wallet', 'Travel Money/Currency', 'Passport', 
+  'Visa', 'License', 'Travel Insurance'];
 
-  const newDestination = new Destination({
-    location: destination.location,
-    user: user._id,
-  });
-  newDestination
-    .save()
-    .then((destination) => {
-      Promise.all(
-        packingList.map((item) =>
-          new Checklist({
-            todo: item,
-            destination: destination._id,
-          }).save()
-        )
-      )
-      Promise.all(
-        toiletriesList.map((item) =>
-          new Checklist({
-            todo: item,
-            destination: destination._id,
-          }).save()
-        )
-      )
-      .then(() => {
-        res.sendStatus(200);
-      });
-    })
-    .catch((err) => console.error(err));
+const newDestination = new Destination({
+  location: destination.location,
+  user: user._id,
+});
+
+newDestination.save()
+  .then((destination) => {
+    return packingList.reduce((promiseChain, item) => {
+      return promiseChain.then(() =>
+        new Checklist({
+          todo: item,
+          destination: destination._id,
+        }).save()
+      );
+    }, Promise.resolve());
+  })
+  .then(() => {
+    res.sendStatus(200);
+  })
+  .catch((err) => console.error(err));
 });
 
 router.get("/destination/:id", async (req, res) => {
